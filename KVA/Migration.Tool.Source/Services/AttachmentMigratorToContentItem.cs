@@ -4,6 +4,7 @@ using CMS.Core;
 using Kentico.Xperience.UMT.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Migration.Tool.Common;
 using Migration.Tool.Common.MigrationProtocol;
 using Migration.Tool.Source.Auxiliary;
 using Migration.Tool.Source.Model;
@@ -16,7 +17,8 @@ public class AttachmentMigratorToContentItem(
     ModelFacade modelFacade,
     EntityIdentityFacade entityIdentityFacade,
     IAssetFacade assetFacade,
-    IImporter importer
+    IImporter importer,
+    ToolConfiguration configuration
 ) : IAttachmentMigrator
 {
     public async Task<IMigrateAttachmentResult> TryMigrateAttachmentByPath(string documentPath, string additionalPath)
@@ -40,12 +42,20 @@ public class AttachmentMigratorToContentItem(
                     """, new SqlParameter("nodeAliasPath", documentPath)).ToList()
             ;
 
-        Debug.Assert(attachments.Count == 1, "attachments.Count == 1");
+        bool canContinue = true;
+        
+        if (!configuration.RemoveBrokenMediaAndAttachmentLinks.HasValue 
+            || !configuration.RemoveBrokenMediaAndAttachmentLinks.Value)
+        {
+            Debug.Assert(attachments.Count == 1, "attachments.Count == 1");
+            canContinue = false;
+        }
+        
         var attachment = attachments.FirstOrDefault();
 
         return attachment != null
             ? await MigrateAttachment(attachment, additionalPath)
-            : new MigrateAttachmentResultContentItem(false, false, null);
+            : new MigrateAttachmentResultContentItem(false, canContinue, null);
     }
 
     public async IAsyncEnumerable<IMigrateAttachmentResult> MigrateGroupedAttachments(int documentId, Guid attachmentGroupGuid, string fieldName)

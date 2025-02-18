@@ -35,6 +35,11 @@ public static class HandbookReferences
 
     #region "Errors - something need to be done"
 
+    public static HandbookReference BrokenAssetValueRemoved(string? pageNodeAliasPath, string? mediaUrl) 
+        => new HandbookReference("BrokenAssetValueRemoved")
+        .WithMessage($"Broken media item or attachment url was removed: page node alias path: {pageNodeAliasPath}, media url: {mediaUrl}")
+        .NeedsManualAction();
+    
     public static HandbookReference InvalidSourceCmsVersion() => new HandbookReference("InvalidSourceCmsVersion")
         .NeedsManualAction();
 

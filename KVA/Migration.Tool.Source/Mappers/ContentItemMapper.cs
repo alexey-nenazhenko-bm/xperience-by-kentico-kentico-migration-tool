@@ -14,6 +14,7 @@ using Migration.Tool.Common;
 using Migration.Tool.Common.Abstractions;
 using Migration.Tool.Common.Builders;
 using Migration.Tool.Common.Helpers;
+using Migration.Tool.Common.MigrationProtocol;
 using Migration.Tool.Common.Services;
 using Migration.Tool.KXP.Api.Auxiliary;
 using Migration.Tool.KXP.Api.Services.CmsClass;
@@ -63,7 +64,8 @@ public class ContentItemMapper(
     ToolConfiguration configuration,
     ClassMappingProvider classMappingProvider,
     VisualBuilderPatcher visualBuilderPatcher,
-    IServiceProvider serviceProvider
+    IServiceProvider serviceProvider,
+    IProtocol protocol
     ) : UmtMapperBase<CmsTreeMapperSource>, IUmtMapper<CustomTableMapperSource>
 {
     private const string CLASS_FIELD_CONTROL_NAME = "controlname";
@@ -679,6 +681,16 @@ public class ContentItemMapper(
                     case { Success: false }:
                     {
                         logger.LogError("Error while migrating field '{Field}' value {Value}", targetFieldName, sourceValue);
+                        if (configuration.RemoveBrokenMediaAndAttachmentLinks.HasValue 
+                            && configuration.RemoveBrokenMediaAndAttachmentLinks.Value 
+                            && fmb.Rank == 100_000)
+                        {
+                            target[targetFieldName] = null;
+                            
+                            protocol.Append(HandbookReferences.BrokenAssetValueRemoved(
+                                (sourceObjectContext as DocumentSourceObjectContext)?.CmsTree.NodeAliasPath,
+                                sourceValue?.ToString()));
+                        }
                         break;
                     }
 
