@@ -28,6 +28,9 @@ public class ToolConfiguration
     [ConfigurationKeyName(ConfigurationNames.MigrateOnlyMediaFileInfo)]
     public bool? MigrateOnlyMediaFileInfo { get; set; } = false;
 
+    [ConfigurationKeyName(ConfigurationNames.WipeBrokenMediaAndAttachmentLinks)]
+    public bool? WipeBrokenMediaAndAttachmentLinks { get; set; } = false;
+
     [ConfigurationKeyName(ConfigurationNames.UseOmActivityNodeRelationAutofix)]
     public AutofixEnum? UseOmActivityNodeRelationAutofix { get; set; } = AutofixEnum.Error;
 

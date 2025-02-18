@@ -13,6 +13,7 @@ public class ConfigurationNames
     public const string XbyKDirPath = "XbyKDirPath";
 
     public const string MigrateOnlyMediaFileInfo = "MigrateOnlyMediaFileInfo";
+    public const string WipeBrokenMediaAndAttachmentLinks = "WipeBrokenMediaAndAttachmentLinks";
     public const string UseOmActivityNodeRelationAutofix = "UseOmActivityNodeRelationAutofix";
     public const string UseOmActivitySiteRelationAutofix = "UseOmActivitySiteRelationAutofix";
     public const string MigrationProtocolPath = "MigrationProtocolPath";
