@@ -257,13 +257,18 @@ public class AssetFacade(
             string folderKey = $"{currentPath}";
             if (!contentFolderModels.TryGetValue(folderKey, out lastFolder))
             {
+                string parentFolderPath = 
+                    string.Join("/", rootFolder.ContentFolderTreePath!, string.Join("/", pathSplit[..i]));
+                
+                _ = !contentFolderModels.TryGetValue(parentFolderPath, out var parentFolder);
+                
                 lastFolder = new ContentFolderModel
                 {
                     ContentFolderGUID = folderGuid,
                     ContentFolderName = $"{folderGuid}",
                     ContentFolderDisplayName = current,
                     ContentFolderTreePath = currentPath,
-                    ContentFolderParentFolderGUID = lastFolder?.ContentFolderGUID ?? rootFolder.ContentFolderGUID
+                    ContentFolderParentFolderGUID = parentFolder?.ContentFolderGUID ?? rootFolder.ContentFolderGUID,
                 };
                 switch (await importer.ImportAsync(lastFolder))
                 {
