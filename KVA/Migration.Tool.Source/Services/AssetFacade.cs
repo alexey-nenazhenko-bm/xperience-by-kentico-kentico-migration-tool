@@ -208,7 +208,7 @@ public class AssetFacade(
         return contentItem;
     }
 
-    private readonly Dictionary<string, ContentFolderModel> contentFolderModels = [];
+    private readonly Dictionary<string, ContentFolderModel> contentFolderModels = new(StringComparer.OrdinalIgnoreCase);
     private ContentLanguageInfo? defaultContentLanguage;
 
     private async Task<ContentFolderModel?> EnsureFolderStructure(string folderPath, ContentFolderModel rootFolder)
@@ -216,34 +216,10 @@ public class AssetFacade(
         ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
 
         string rootKey = $"root|{rootFolder.ContentFolderGUID}";
+
         if (!contentFolderModels.TryGetValue(rootKey, out _))
         {
-            switch (await importer.ImportAsync(rootFolder))
-            {
-                case { Success: true }:
-                {
-                    contentFolderModels[rootKey] = rootFolder;
-                    break;
-                }
-                case { Success: false, Exception: { } exception }:
-                {
-                    logger.LogError("Failed to import asset migration folder: {Error} {Prerequisite}", exception.ToString(), rootFolder.PrintMe());
-                    break;
-                }
-                case { Success: false, ModelValidationResults: { } validation }:
-                {
-                    foreach (var validationResult in validation)
-                    {
-                        logger.LogError("Failed to import asset migration folder {Members}: {Error} - {Prerequisite}", string.Join(",", validationResult.MemberNames), validationResult.ErrorMessage, rootFolder.PrintMe());
-                    }
-
-                    break;
-                }
-                default:
-                {
-                    throw new InvalidOperationException($"Asset migration cannot continue, cannot prepare prerequisite - unknown result");
-                }
-            }
+            await ImportFolder(rootKey, rootFolder);
             contentFolderModels[rootKey] = rootFolder;
         }
 
@@ -258,9 +234,28 @@ public class AssetFacade(
             if (!contentFolderModels.TryGetValue(folderKey, out lastFolder))
             {
                 string parentFolderPath = 
-                    string.Join("/", rootFolder.ContentFolderTreePath!, string.Join("/", pathSplit[..i]));
-                
-                _ = !contentFolderModels.TryGetValue(parentFolderPath, out var parentFolder);
+                    string.Join("/", rootFolder.ContentFolderTreePath!, string.Join("/", pathSplit[..i]))
+                        .TrimEnd('/');
+
+                Guid? contentFolderParentFolderGuid;
+
+                if (!string.Equals(parentFolderPath, rootFolder.ContentFolderTreePath, StringComparison.Ordinal))
+                {
+                    _ = !contentFolderModels.TryGetValue(parentFolderPath, out var parentFolder);
+                    if (parentFolder != null)
+                    {
+                        contentFolderParentFolderGuid = parentFolder.ContentFolderGUID;
+                    }
+                    else
+                    {
+                        contentFolderParentFolderGuid = rootFolder.ContentFolderGUID;
+                        logger.LogDebug($"Parent folder not found, path: {parentFolderPath}");
+                    }
+                }
+                else
+                {
+                    contentFolderParentFolderGuid = rootFolder.ContentFolderGUID;
+                }
                 
                 lastFolder = new ContentFolderModel
                 {
@@ -268,34 +263,10 @@ public class AssetFacade(
                     ContentFolderName = $"{folderGuid}",
                     ContentFolderDisplayName = current,
                     ContentFolderTreePath = currentPath,
-                    ContentFolderParentFolderGUID = parentFolder?.ContentFolderGUID ?? rootFolder.ContentFolderGUID,
+                    ContentFolderParentFolderGUID = contentFolderParentFolderGuid
                 };
-                switch (await importer.ImportAsync(lastFolder))
-                {
-                    case { Success: true }:
-                    {
-                        contentFolderModels[folderKey] = lastFolder;
-                        break;
-                    }
-                    case { Success: false, Exception: { } exception }:
-                    {
-                        logger.LogError("Failed to import asset migration folder: {Error} {Prerequisite}", exception.ToString(), lastFolder.PrintMe());
-                        break;
-                    }
-                    case { Success: false, ModelValidationResults: { } validation }:
-                    {
-                        foreach (var validationResult in validation)
-                        {
-                            logger.LogError("Failed to import asset migration folder {Members}: {Error} - {Prerequisite}", string.Join(",", validationResult.MemberNames), validationResult.ErrorMessage, lastFolder.PrintMe());
-                        }
 
-                        break;
-                    }
-                    default:
-                    {
-                        throw new InvalidOperationException($"Asset migration cannot continue, cannot prepare prerequisite - unknown result");
-                    }
-                }
+                await ImportFolder(folderKey, lastFolder);
             }
         }
 
@@ -339,6 +310,39 @@ public class AssetFacade(
         return $"/getContentAsset/{ownerContentItemGuid}/{LegacyAttachmentAssetField.Guid}/{attachment.AttachmentName}?language={contentLanguageName ?? DefaultContentLanguage}";
     }
 
+    private async Task ImportFolder(string folderKey, ContentFolderModel folder)
+    {
+        if (!contentFolderModels.TryGetValue(folderKey, out _))
+        {
+            switch (await importer.ImportAsync(folder))
+            {
+                case { Success: true }:
+                {
+                    contentFolderModels[folderKey] = folder;
+                    break;
+                }
+                case { Success: false, Exception: { } exception }:
+                {
+                    logger.LogError("Failed to import asset migration folder: {Error} {Prerequisite}", exception.ToString(), folder.PrintMe());
+                    break;
+                }
+                case { Success: false, ModelValidationResults: { } validation }:
+                {
+                    foreach (var validationResult in validation)
+                    {
+                        logger.LogError("Failed to import asset migration folder {Members}: {Error} - {Prerequisite}", string.Join(",", validationResult.MemberNames), validationResult.ErrorMessage, folder.PrintMe());
+                    }
+
+                    break;
+                }
+                default:
+                {
+                    throw new InvalidOperationException($"Asset migration cannot continue, cannot prepare prerequisite - unknown result");
+                }
+            }
+        }
+    }
+    
     private void AssertSuccess(IImportResult importResult, IUmtModel model)
     {
         switch (importResult)
