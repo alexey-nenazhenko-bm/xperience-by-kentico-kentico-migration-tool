@@ -683,7 +683,8 @@ public class ContentItemMapper(
                         logger.LogError("Error while migrating field '{Field}' value {Value}", targetFieldName, sourceValue);
                         if (configuration.RemoveBrokenMediaAndAttachmentLinks.HasValue 
                             && configuration.RemoveBrokenMediaAndAttachmentLinks.Value 
-                            && fmb.Rank == 100_000)
+                            && target[targetFieldName] is string link 
+                            && (link.StartsWith("~/getmedia") || link.StartsWith("~/getattachment")))
                         {
                             target[targetFieldName] = null;
                             
