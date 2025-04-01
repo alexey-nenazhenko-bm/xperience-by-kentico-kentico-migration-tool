@@ -30,6 +30,8 @@ public static class HandbookReferences
     public static HandbookReference DataAlreadyExistsInTargetInstance =>
         new("DataAlreadyExistsInTargetInstance");
 
+    public static HandbookReference PageExplicitlyExcludedByAliasPath(string pageAliasPath, string sourcePageGuid) =>
+        new("PageExplicitlyExcludedByAliasPath", $"PageAliasPath={pageAliasPath}, PageGuid={sourcePageGuid}");
     #endregion
 
 

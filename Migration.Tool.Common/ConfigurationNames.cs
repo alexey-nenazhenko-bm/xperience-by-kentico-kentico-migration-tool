@@ -65,6 +65,9 @@ public class ConfigurationNames
 
     public const string XbKApiSettings = "XbKApiSettings";
     public const string XbyKApiSettings = "XbyKApiSettings";
+    
+    public const string NodeAliasPathPageFilteringMode = "NodeAliasPathPageFilteringMode";
+    public const string NodeAliasPathPageFilters = "NodeAliasPathPageFilters";
 
     #endregion
 }
