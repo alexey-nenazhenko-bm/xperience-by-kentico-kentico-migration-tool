@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO.Enumeration;
 using CMS.ContentEngine;
 using CMS.ContentEngine.Internal;
 using CMS.Core;
@@ -294,6 +295,25 @@ public class MigratePagesCommandHandler(
                         continue;
                     }
 
+                    if (toolConfiguration.NodeAliasPathPageFilteringMode != FilteringModeEnum.Disabled)
+                    {
+                        var isFilterMatch = toolConfiguration.NodeAliasPathPageFilters
+                            .Any(x => FileSystemName.MatchesSimpleExpression(x, ksNode.NodeAliasPath, ignoreCase: true));
+                        var continueProcessing = toolConfiguration.NodeAliasPathPageFilteringMode switch
+                        {
+                            FilteringModeEnum.Include => isFilterMatch,
+                            FilteringModeEnum.Exclude => !isFilterMatch,
+                            _ => true
+                        };
+                        if (!continueProcessing)
+                        {
+                            protocol.Warning(HandbookReferences.PageExplicitlyExcludedByAliasPath(ksNode.NodeAliasPath, ksNode.NodeGUID.ToString()), ksNode);
+                            logger.LogWarning("Page: page {PageName} ({PageAliasPath}) [{PageGuid}] was skipped => it is explicitly excluded in configuration",
+                                ksNode.NodeName, ksNode.NodeAliasPath, ksNode.NodeGUID);
+                            continue;
+                        }
+                    }
+                    
                     if (nodeClassClassName == ClassCmsRoot)
                     {
                         logger.LogInformation("Root node skipped, V27 has no support for root nodes");

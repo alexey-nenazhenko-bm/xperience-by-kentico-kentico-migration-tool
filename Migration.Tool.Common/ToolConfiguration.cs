@@ -13,6 +13,26 @@ public enum AutofixEnum
     Error
 }
 
+/// <summary>
+///     Filtering mode enum
+/// </summary>
+/// <remarks>The enum value names are used verbatim in json configuration, so any changes will need to be coordinated with configs.</remarks>
+public enum FilteringModeEnum
+{
+    /// <summary>
+    /// Filtering disabled - don't apply the filtering rules in any way.
+    /// </summary>
+    Disabled,
+    /// <summary>
+    /// "Include" filtering mode - whitelist behavior; processing should be applied only to objects that match the filter.
+    /// </summary>
+    Include,
+    /// <summary>
+    /// "Exclude" filtering mode - blacklist behavior; don't migrate/process the items that match the filter.
+    /// </summary>
+    Exclude
+}
+
 public class ToolConfiguration
 {
     #region Path to CMS dir of source instance
@@ -60,6 +80,12 @@ public class ToolConfiguration
 
     [ConfigurationKeyName(ConfigurationNames.ConvertClassesToContentHub)]
     public string? ConvertClassesToContentHub { get; set; }
+
+    [ConfigurationKeyName(ConfigurationNames.NodeAliasPathPageFilteringMode)]
+    public FilteringModeEnum NodeAliasPathPageFilteringMode { get; set; } = FilteringModeEnum.Disabled;
+    
+    [ConfigurationKeyName(ConfigurationNames.NodeAliasPathPageFilters)]
+    public string[] NodeAliasPathPageFilters { get; set; } = [];
 
     public IReadOnlySet<string> ClassNamesCreateReusableSchema => classNamesCreateReusableSchema ??= new HashSet<string>(
         (CreateReusableFieldSchemaForClasses?.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries) ?? []).Select(x => x.Trim()),
